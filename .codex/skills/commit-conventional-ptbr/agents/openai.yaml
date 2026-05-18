@@ -1,0 +1,7 @@
+interface:
+  display_name: "Commits Convencionais"
+  short_description: "Commits parciais em pt-BR"
+  default_prompt: "Use $commit-conventional-ptbr para escrever commits Conventional Commits em pt-BR, separando alterações por escopo."
+
+policy:
+  allow_implicit_invocation: true
