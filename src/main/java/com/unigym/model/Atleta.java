@@ -1,4 +1,4 @@
-package model;
+package com.unigym.model;
 
 import com.unigym.model.enums.Objetivo;
 import com.unigym.model.enums.NivelExperiencia;
