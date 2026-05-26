@@ -38,6 +38,12 @@ public class ApiExceptionHandler {
                 .body(new ApiErrorResponse(exception.getMessage(), Map.of("senha", exception.getMessage())));
     }
 
+    @ExceptionHandler(CredenciaisInvalidasException.class)
+    public ResponseEntity<ApiErrorResponse> handleCredenciaisInvalidas(CredenciaisInvalidasException exception) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(new ApiErrorResponse(exception.getMessage(), Map.of("email", "E-mail ou senha inválidos")));
+    }
+
     @ExceptionHandler(CampoInvalidoException.class)
     public ResponseEntity<ApiErrorResponse> handleCampoInvalido(CampoInvalidoException exception) {
         return ResponseEntity.badRequest()

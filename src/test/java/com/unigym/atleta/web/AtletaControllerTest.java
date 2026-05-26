@@ -42,7 +42,7 @@ class AtletaControllerTest {
 	}
 
 	@Test
-	void deveCadastrarEAutenticarNaSessao() throws Exception {
+	void deveCadastrarERetornarJwtNoHeader() throws Exception {
 		String json = """
 				{
 					"nome": "Ana Silva",
@@ -65,14 +65,47 @@ class AtletaControllerTest {
 				.andExpect(jsonPath("$.senha").doesNotExist())
 				.andReturn();
 
-		assertThat(result.getRequest().getSession(false))
-				.isNotNull()
-				.extracting(session -> session.getAttribute("SPRING_SECURITY_CONTEXT"))
-				.isNotNull();
+		assertThat(result.getResponse().getHeader("Authorization"))
+				.isNotBlank()
+				.startsWith("Bearer ");
 
 		Atleta atletaPersistido = atletaRepository.findAll().getFirst();
 		assertThat(atletaPersistido.getSenha()).isNotEqualTo("senhaSegura");
 		assertThat(atletaPersistido.getSenha()).startsWith("$2");
+	}
+
+	@Test
+	void devePermitirLoginComCredenciaisValidas() throws Exception {
+		String cadastro = """
+				{
+					"nome": "Ana Silva",
+					"email": "ana@exemplo.com",
+					"senha": "senhaSegura",
+					"dataNascimento": "1995-04-12",
+					"peso": 62.5,
+					"altura": 1.70,
+					"nivelExperiencia": "INICIANTE"
+				}
+				""";
+
+		mockMvc.perform(post("/api/atletas")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(cadastro))
+				.andExpect(status().isCreated());
+
+		String login = """
+				{
+					"email": "ana@exemplo.com",
+					"senha": "senhaSegura"
+				}
+				""";
+
+		mockMvc.perform(post("/api/auth/login")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(login))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.tipo").value("Bearer"))
+				.andExpect(jsonPath("$.token").isString());
 	}
 
 	@Test
@@ -119,6 +152,39 @@ class AtletaControllerTest {
 						.content(json))
 				.andExpect(status().isConflict())
 				.andExpect(jsonPath("$.fieldErrors.email").value("E-mail já em uso"));
+	}
+
+	@Test
+	void deveRejeitarLoginComCredenciaisInvalidas() throws Exception {
+		String cadastro = """
+				{
+					"nome": "Ana Silva",
+					"email": "ana@exemplo.com",
+					"senha": "senhaSegura",
+					"dataNascimento": "1995-04-12",
+					"peso": 62.5,
+					"altura": 1.70,
+					"nivelExperiencia": "INICIANTE"
+				}
+				""";
+
+		mockMvc.perform(post("/api/atletas")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(cadastro))
+				.andExpect(status().isCreated());
+
+		String loginInvalido = """
+				{
+					"email": "ana@exemplo.com",
+					"senha": "senhaErrada"
+				}
+				""";
+
+		mockMvc.perform(post("/api/auth/login")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(loginInvalido))
+				.andExpect(status().isUnauthorized())
+				.andExpect(jsonPath("$.message").value("Credenciais inválidas"));
 	}
 
 	@Test

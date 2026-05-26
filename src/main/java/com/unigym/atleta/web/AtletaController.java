@@ -2,6 +2,7 @@ package com.unigym.atleta.web;
 
 import com.unigym.atleta.domain.Atleta;
 import com.unigym.atleta.service.AtletaService;
+import com.unigym.atleta.service.JwtService;
 import com.unigym.atleta.web.dto.ApiErrorResponse;
 import com.unigym.atleta.web.dto.AtletaResponse;
 import com.unigym.atleta.web.dto.CadastroAtletaRequest;
@@ -12,15 +13,11 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -32,11 +29,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class AtletaController {
 
     private final AtletaService atletaService;
-    private final SecurityContextRepository securityContextRepository;
+    private final JwtService jwtService;
 
-    public AtletaController(AtletaService atletaService, SecurityContextRepository securityContextRepository) {
+    public AtletaController(AtletaService atletaService, JwtService jwtService) {
         this.atletaService = atletaService;
-        this.securityContextRepository = securityContextRepository;
+        this.jwtService = jwtService;
     }
 
     @PostMapping
@@ -118,17 +115,13 @@ public class AtletaController {
                                               "nivelExperiencia": "INTERMEDIARIO"
                                             }
                                             """)}))
-            @RequestBody CadastroAtletaRequest request,
-            HttpServletRequest servletRequest,
-            HttpServletResponse servletResponse) {
+            @RequestBody CadastroAtletaRequest request) {
         Atleta atleta = atletaService.cadastrar(request);
         Authentication authentication = atletaService.autenticar(atleta);
+        String token = jwtService.gerarToken(authentication);
 
-        SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
-        securityContext.setAuthentication(authentication);
-        SecurityContextHolder.setContext(securityContext);
-        securityContextRepository.saveContext(securityContext, servletRequest, servletResponse);
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(AtletaResponse.from(atleta));
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                .body(AtletaResponse.from(atleta));
     }
 }

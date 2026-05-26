@@ -9,8 +9,6 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
-import org.springframework.security.web.context.SecurityContextRepository;
 
 @Configuration
 public class SecurityConfig {
@@ -21,24 +19,22 @@ public class SecurityConfig {
 	}
 
 	@Bean
-	public SecurityContextRepository securityContextRepository() {
-		return new HttpSessionSecurityContextRepository();
-	}
-
-	@Bean
-	public SecurityFilterChain securityFilterChain(HttpSecurity http, SecurityContextRepository securityContextRepository)
+	public SecurityFilterChain securityFilterChain(HttpSecurity http)
 			throws Exception {
 		http
 				.csrf(csrf -> csrf.disable())
-				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
-				.securityContext(securityContext -> securityContext.securityContextRepository(securityContextRepository))
+				.headers(headers -> headers.frameOptions(frameOptions -> frameOptions.sameOrigin()))
+				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 				.authorizeHttpRequests(authorize -> authorize
 						.requestMatchers("/").permitAll()
 						.requestMatchers("/error").permitAll()
+						.requestMatchers("/h2-console/**").permitAll()
 						.requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
 						.requestMatchers(HttpMethod.POST, "/api/atletas").permitAll()
+						.requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
 						.anyRequest().authenticated())
-				.httpBasic(Customizer.withDefaults())
+				.oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()))
+				.httpBasic(httpBasic -> httpBasic.disable())
 				.formLogin(form -> form.disable())
 				.logout(logout -> logout.disable());
 		return http.build();

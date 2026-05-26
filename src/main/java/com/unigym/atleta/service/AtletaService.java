@@ -3,6 +3,7 @@ package com.unigym.atleta.service;
 import com.unigym.atleta.domain.Atleta;
 import com.unigym.atleta.repository.AtletaRepository;
 import com.unigym.atleta.web.dto.CadastroAtletaRequest;
+import com.unigym.atleta.web.exception.CredenciaisInvalidasException;
 import com.unigym.atleta.web.exception.EmailJaCadastradoException;
 import com.unigym.atleta.web.exception.SenhaFracaException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -49,5 +50,16 @@ public class AtletaService {
                 atleta.getEmail(),
                 null,
                 AuthorityUtils.NO_AUTHORITIES);
+    }
+
+    public Authentication autenticar(String email, String senha) {
+        Atleta atleta = atletaRepository.findByEmail(email)
+                .orElseThrow(CredenciaisInvalidasException::new);
+
+        if (!passwordEncoder.matches(senha, atleta.getSenha())) {
+            throw new CredenciaisInvalidasException();
+        }
+
+        return autenticar(atleta);
     }
 }
